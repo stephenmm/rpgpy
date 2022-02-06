@@ -24,6 +24,8 @@ class Char(object):
     #self.dex = 0.0
     self.armor = 0.0
     self.xp = 0.0
+    self.x = 10
+    self.y = 10
     self.melee = Weapon( 'hands', 1.0, 0.0 )
     if( create == "random" ):
       self.max_hp = random.uniform(80.0,120.0)
@@ -41,39 +43,67 @@ class Char(object):
     opp.hp = opp.hp - hp_dmg
     print("%s strikes %s with %s for %f dmg and %s has %f HP left" % ( self.name, opp.name, self.melee.name, hp_dmg, opp.name, opp.hp ))
 
+class Game(object):
+  def __init__(self):
+    
+    self.stdscr = curses.initscr()
+    curses.start_color()
+    curses.use_default_colors()
+    curses.noecho()
+    curses.curs_set( False )
 
-# curses windows and panel setup
-x=5
-y=5
+    curses.init_pair( 1, curses.COLOR_YELLOW, curses.COLOR_GREEN )
+    curses.init_pair( 2, curses.COLOR_RED,    curses.COLOR_GREEN )
 
-stdscr = curses.initscr()
-curses.start_color()
-curses.use_default_colors()
-curses.noecho()
-curses.curs_set( False )
+    self.bgWin = curses.newwin(10,50,1,1)
+    self.bgWin.bkgd( '.', curses.color_pair( 1 ) )
+    self.bgPnl = curses.panel.new_panel(self.bgWin)
 
-curses.init_pair( 1, curses.COLOR_YELLOW, curses.COLOR_GREEN )
-curses.init_pair( 2, curses.COLOR_RED,    curses.COLOR_GREEN )
+    self.chrWin = curses.newwin(1,1,5,5)
+    self.chrWin.bkgd( "@", curses.color_pair( 2 ) )
+    self.chrPnl = curses.panel.new_panel( self.chrWin )
 
-bgWin = curses.newwin(10,50,1,1)
-bgWin.bkgd( '.', curses.color_pair( 1 ) )
-bgPnl = curses.panel.new_panel(bgWin)
+    #self.bgWin.addstr(0, 0, "Hello World")
+    #self.bgWin.getch()
+    #self.
+    #self.bgPnl.move(y+1, x)
 
-chrWin = curses.newwin(1,1,5,5)
-chrWin.bkgd( "@", curses.color_pair( 2 ) )
-chrPnl = curses.panel.new_panel( chrWin )
+    curses.panel.update_panels()
+    curses.doupdate()
 
-#bgWin.addstr(0, 0, "Hello World")
-#bgWin.getch()
-#
-#bgPnl.move(y+1, x)
+    self.p = Char( "Jack" )
+    self.npc = Char( "Luci" )
 
-curses.panel.update_panels()
-curses.doupdate()
+  #print('Commands: esc-quit a-attack d-defend')
+  def on_press(self,key):
+     x = self.p.x
+     y = self.p.y
+     if key == pynput.keyboard.Key.esc:
+         return False  # stop listener
+     try:
+         k = key.char  # single-char keys
+     except:
+         k = key.name  # other keys
+     if k == ' ':
+       self.p.attack(self.npc)
+       #print(npc)
+     if k == 'a': y-=1; self.chrPnl.move(x,y);
+     if k == 'd': y+=1; self.chrPnl.move(x,y);
+     if k == 's': x+=1; self.chrPnl.move(x,y);
+     if k == 'w': x-=1; self.chrPnl.move(x,y);
+     self.p.x  =  x
+     self.p.y  =  y
+     curses.panel.update_panels()
+     curses.doupdate()
 
 
-p = Char( "Jack" )
-npc = Char( "Luci" )
+  def run(self):
+    listener = pynput.keyboard.Listener(on_press=self.on_press)
+    listener.start()  # start to listen on a separate thread
+    listener.join()  # remove if main thread is polling self.keys
+    while True:
+      time.sleep(1)
+
 
 #for x in range(10):
 #  p.attack(npc)
@@ -86,30 +116,6 @@ npc = Char( "Luci" )
 #   event = events.get(1e6)
 #   if event.key == pynput.keyboard.KeyCode.from_char('s'):
 #     print("YES")
-
-#print('Commands: esc-quit a-attack d-defend')
-def on_press(key):
-   global x, y
-   if key == pynput.keyboard.Key.esc:
-       return False  # stop listener
-   try:
-       k = key.char  # single-char keys
-   except:
-       k = key.name  # other keys
-   if k == ' ':
-     p.attack(npc)
-     #print(npc)
-   if k == 'a': y-=1; chrPnl.move(x,y);
-   if k == 'd': y+=1; chrPnl.move(x,y);
-   if k == 's': x+=1; chrPnl.move(x,y);
-   if k == 'w': x-=1; chrPnl.move(x,y);
-   curses.panel.update_panels()
-   curses.doupdate()
-
-listener = pynput.keyboard.Listener(on_press=on_press)
-listener.start()  # start to listen on a separate thread
-listener.join()  # remove if main thread is polling self.keys
-
 #print(p)
 #print(npc)
 
@@ -117,5 +123,5 @@ listener.join()  # remove if main thread is polling self.keys
 
 
 ## Run the game
-#game = Game(board_num_rows=16, board_num_columns=10)
-#game.main_loop()
+game = Game()
+game.run()
